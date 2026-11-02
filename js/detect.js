@@ -52,7 +52,7 @@ function angleBetween(a, b) {
   return d > Math.PI ? 2 * Math.PI - d : d;
 }
 
-export function isLying(person) {
+function isLying(person) {
   return Math.abs(Math.sin(person.angle)) > 0.7;
 }
 

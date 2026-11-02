@@ -94,6 +94,25 @@ checks that the crash lands in the auto-dispatch band, the person-down clip
 lands in the confirm band, and a minute of normal traffic raises nothing. Node
 18 or newer.
 
+## Offline part: running the rules on real video
+
+`tools/detect_video.py` is the offline half. It is **not part of the hosted
+page** and GitHub Pages never runs it. It runs a pretrained YOLOv8n
+(Ultralytics) with tracking on a video clip, applies the same score, thresholds
+and 30 s cooldown as `js/detect.js`, and writes `events.json`:
+
+```
+pip install ultralytics
+python tools/detect_video.py path/to/clip.mp4 --pole SEP-01 --out events.json
+```
+
+Two differences from the browser version, because a detector gives less than
+our animation does. YOLO boxes have no heading, so *orientation change* uses
+the box going from tall to wide as a stand-in. Speeds are measured in vehicle
+lengths per second, so the sudden-stop threshold doesn't depend on camera zoom.
+We have only tested the scoring part on synthetic tracks, not on real crash
+footage, so treat any numbers it prints as untested.
+
 ## Files
 
 ```
@@ -106,6 +125,7 @@ js/data.js       poles, test ambulances, test hospitals
 js/camera.js     the simulated camera clips and drawing
 js/firstaid.js   first-aid script and speech
 tests/check.mjs  quick logic checks
+tools/           offline YOLOv8n script (not used by the page)
 docs/            diagrams
 ```
 

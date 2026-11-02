@@ -306,7 +306,7 @@ select {
 .feed { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
 .feed th, .feed td { padding: 0.45rem 0.6rem; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .feed th { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
-.feed + .empty, .table-wrap + .empty { margin-top: 0.5rem; }
+.table-wrap + .empty { margin-top: 0.5rem; }
 
 .badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 3px; font-size: 0.8rem; font-weight: 600; }
 .badge-dispatched { background: #fbeceb; color: #9b2c20; }

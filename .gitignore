@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
 .venv/
-tools/*.mp4
-tools/events.json
+*.mp4
+events.json
 *.pt
