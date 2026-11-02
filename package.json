@@ -1,0 +1,8 @@
+{
+  "name": "smart-emergency-pole",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/check.mjs"
+  }
+}
