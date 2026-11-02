@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { haversineKm, nearest, etaMinutes, mapsLink, planDispatch } from '../js/dispatch.js';
 import { boxOf, overlapRatio, crashScore, decide, createCooldown, createTracker, trackFrame } from '../js/detect.js';
 import { poles, ambulances, hospitals } from '../js/data.js';
+import { scenarios, scenarioAt, trafficAt } from '../js/camera.js';
 
 let passed = 0;
 function check(name, fn) {
@@ -89,6 +90,34 @@ check('a car braking from speed to zero reads as a sudden stop', () => {
   }
   assert.equal(features.suddenStop, 1);
   assert.equal(features.overlap, 0);
+});
+
+function peakScore(objectsAt, duration, fps) {
+  const tracker = createTracker();
+  let peak = 0;
+  // Uneven frame times, like a busy browser tab.
+  for (let t = 0, i = 0; t <= duration; t += (1 + 0.5 * Math.sin(i++)) / fps) {
+    peak = Math.max(peak, crashScore(trackFrame(tracker, objectsAt(t), t)).score);
+  }
+  return peak;
+}
+
+check('crash clip scores in the auto-dispatch band at 24 and 60 fps', () => {
+  for (const fps of [24, 60]) {
+    const score = peakScore(t => scenarioAt('crash', t), scenarios.crash.duration, fps);
+    assert.equal(decide(score), 'dispatch', `${fps} fps: ${score}`);
+  }
+});
+
+check('person-down clip lands in the operator-confirm band', () => {
+  for (const fps of [24, 60]) {
+    const score = peakScore(t => scenarioAt('person', t), scenarios.person.duration, fps);
+    assert.equal(decide(score), 'confirm', `${fps} fps: ${score}`);
+  }
+});
+
+check('a minute of normal traffic raises nothing', () => {
+  assert.equal(decide(peakScore(trafficAt, 60, 30)), 'log');
 });
 
 process.stdout.write(`\n${passed} checks passed\n`);

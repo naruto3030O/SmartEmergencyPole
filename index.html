@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smart Emergency Pole - simulated demo</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
@@ -37,6 +38,40 @@
         <li><span class="key key-hosp"></span>Hospital (TEST)</li>
       </ul>
     </section>
+
+    <div class="side">
+      <section class="panel" aria-labelledby="cam-title">
+        <div class="panel-head">
+          <h2 id="cam-title">Pole camera</h2>
+          <label class="pole-pick">Pole <select id="pole-select"></select></label>
+        </div>
+        <canvas id="camera" class="camera" width="640" height="360"
+                aria-label="Simulated top-down camera view of the road with detection boxes"></canvas>
+        <div class="actions">
+          <button type="button" id="btn-crash" class="btn btn-danger">Simulate crash</button>
+          <button type="button" id="btn-person" class="btn btn-warn">Simulate person down</button>
+          <button type="button" id="btn-live" class="btn btn-quiet">Back to live traffic</button>
+        </div>
+
+        <div class="score">
+          <div class="score-head">
+            <span id="score-label">Live score</span>
+            <strong id="score-value">0.00</strong>
+          </div>
+          <div class="meter" aria-hidden="true">
+            <span id="score-bar"></span>
+            <i class="mark" style="left: 60%"></i>
+            <i class="mark" style="left: 85%"></i>
+          </div>
+          <table class="breakdown">
+            <thead><tr><th>Signal</th><th>Value</th><th>Weight</th><th>Points</th></tr></thead>
+            <tbody id="breakdown"></tbody>
+          </table>
+          <p class="rules muted">0.85 or more dispatches automatically. 0.60 to 0.85 needs an operator. 30 s cooldown per pole.</p>
+          <p id="decision" class="decision" aria-live="polite">Watching traffic.</p>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

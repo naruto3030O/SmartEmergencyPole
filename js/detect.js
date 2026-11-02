@@ -13,9 +13,10 @@ export const WEIGHTS = {
 // smaller box, so half the smaller box counts as full overlap.
 const FULL_OVERLAP = 0.5;
 const HISTORY_S = 1.5;
-// Braking for traffic takes seconds; a crash stops a vehicle well inside this.
+// Speed lost inside a short window. A car here is ~64 px (about 4.5 m), so
+// losing 120 px/s in 0.6 s is roughly 1.4 g: crash territory, not braking.
 const STOP_WINDOW_S = 0.6;
-const MIN_MOVING_SPEED = 40;
+const HARD_STOP_DROP = 120;
 const NEAR_VEHICLE_PX = 60;
 
 const clamp01 = v => Math.min(1, Math.max(0, v));
@@ -76,9 +77,7 @@ function suddenStop(samples) {
     if (dt > 0) speeds.push(Math.hypot(recent[i].x - recent[i - 1].x, recent[i].y - recent[i - 1].y) / dt);
   }
   if (speeds.length < 2) return 0;
-  const peak = Math.max(...speeds);
-  if (peak < MIN_MOVING_SPEED) return 0;
-  return clamp01((peak - speeds.at(-1)) / peak);
+  return clamp01((Math.max(...speeds) - speeds.at(-1)) / HARD_STOP_DROP);
 }
 
 function orientationChange(samples) {
