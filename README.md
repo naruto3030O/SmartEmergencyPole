@@ -177,7 +177,6 @@ round. It is not built or tested at the scale described here.
 
 ## Team DoomScrollers
 
-- Member name - role
-- Member name - role
-- Member name - role
-- Member name - role
+- Member name [Sanjay Kumar] - role [Software work]
+- Member name [Subhash Kumar] - role [Hardware work]
+
