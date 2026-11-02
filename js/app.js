@@ -1,7 +1,8 @@
 import { poles, ambulances, hospitals } from './data.js';
 import { WEIGHTS, COOLDOWN_MS, createTracker, trackFrame, crashScore, decide, createCooldown } from './detect.js';
-import { formatTime } from './dispatch.js';
+import { planDispatch, alertMessage, mapsLink, formatTime } from './dispatch.js';
 import { WIDTH, HEIGHT, scenarios, trafficAt, scenarioAt, drawFrame } from './camera.js';
+import { createFirstAid } from './firstaid.js';
 
 const $ = id => document.getElementById(id);
 
@@ -12,11 +13,18 @@ const SIGNAL_NAMES = {
   personDown: 'Person down near vehicle'
 };
 
-const state = {
-  poleId: poles[0].id
+const STATUS_TEXT = {
+  awaiting: 'Waiting for operator',
+  dismissed: 'Dismissed by operator',
+  blocked: 'Blocked by cooldown',
+  logged: 'Logged, below 0.60'
 };
 
+const incidents = [];
 const cooldown = createCooldown();
+let selectedPoleId = poles[0].id;
+let nextIncidentId = 1;
+
 const camera = {
   scenario: null,
   poleId: null,
@@ -24,6 +32,7 @@ const camera = {
   tracker: createTracker(),
   peak: null,
   finished: false,
+  incidentId: null,
   status: 'Monitoring',
   alert: false
 };
@@ -32,6 +41,7 @@ const canvas = $('camera');
 const ctx = canvas.getContext('2d');
 const map = createMap();
 const poleMarkers = {};
+const routeLayer = map ? L.layerGroup().addTo(map) : null;
 
 function createMap() {
   const el = $('map');
@@ -82,15 +92,32 @@ function addMarkers() {
   map.fitBounds(all, { padding: [24, 24] });
 }
 
+function poleMarkerEl(poleId) {
+  return poleMarkers[poleId]?.getElement()?.querySelector('.marker');
+}
+
+function drawRoute(pole, plan) {
+  if (!map) return;
+  routeLayer.clearLayers();
+  const note = 'Straight line, not a road route';
+  L.polyline([[plan.ambulance.lat, plan.ambulance.lng], [pole.lat, pole.lng]], { color: '#0d6b66', weight: 4, dashArray: '8 6' })
+    .bindTooltip(`${plan.ambulance.id} to ${pole.id}: ${note}`)
+    .addTo(routeLayer);
+  L.polyline([[pole.lat, pole.lng], [plan.hospital.lat, plan.hospital.lng]], { color: '#c0392b', weight: 3, dashArray: '2 6' })
+    .bindTooltip(`${pole.id} to ${plan.hospital.name}: ${note}`)
+    .addTo(routeLayer);
+  map.fitBounds([[plan.ambulance.lat, plan.ambulance.lng], [pole.lat, pole.lng], [plan.hospital.lat, plan.hospital.lng]], { padding: [40, 40] });
+}
+
 function poleById(id) {
   return poles.find(p => p.id === id);
 }
 
 function selectPole(id) {
-  state.poleId = id;
+  selectedPoleId = id;
   $('pole-select').value = id;
-  for (const [poleId, marker] of Object.entries(poleMarkers)) {
-    marker.getElement()?.querySelector('.marker').classList.toggle('selected', poleId === id);
+  for (const poleId of Object.keys(poleMarkers)) {
+    poleMarkerEl(poleId)?.classList.toggle('selected', poleId === id);
   }
 }
 
@@ -133,55 +160,38 @@ function setSimButtons(enabled) {
   $('btn-person').disabled = !enabled;
 }
 
+function setCameraStatus(incident, text, alert) {
+  if (camera.incidentId !== incident.id) return;
+  camera.status = `${incident.type} - ${text}`;
+  camera.alert = alert;
+}
+
 function startScenario(name) {
-  camera.scenario = name;
-  camera.poleId = state.poleId;
-  camera.start = performance.now() / 1000;
-  camera.tracker = createTracker();
-  camera.peak = null;
-  camera.finished = false;
-  camera.status = 'Analysing';
-  camera.alert = false;
+  Object.assign(camera, {
+    scenario: name,
+    poleId: selectedPoleId,
+    start: performance.now() / 1000,
+    tracker: createTracker(),
+    peak: null,
+    finished: false,
+    incidentId: null,
+    status: 'Analysing',
+    alert: false
+  });
   setSimButtons(false);
   setDecision('Analysing clip...', 'busy');
 }
 
 function backToLive() {
-  camera.scenario = null;
-  camera.tracker = createTracker();
-  camera.status = 'Monitoring';
-  camera.alert = false;
+  Object.assign(camera, {
+    scenario: null,
+    tracker: createTracker(),
+    incidentId: null,
+    status: 'Monitoring',
+    alert: false
+  });
   setSimButtons(true);
   setDecision('Watching traffic.', 'idle');
-}
-
-function raiseEvent(name, result) {
-  const pole = poleById(camera.poleId);
-  const type = scenarios[name].type;
-  const now = Date.now();
-  const decision = decide(result.score);
-  const score = result.score.toFixed(2);
-  const wait = cooldown.remaining(pole.id, now);
-
-  if (decision !== 'log' && wait > 0) {
-    camera.status = `${type} - blocked by cooldown`;
-    setDecision(`${score}: ${pole.id} raised an alert ${Math.round((COOLDOWN_MS - wait) / 1000)} s ago, so this one is blocked for ${Math.ceil(wait / 1000)} s more.`, 'blocked');
-    return;
-  }
-  if (decision === 'dispatch') {
-    cooldown.start(pole.id, now);
-    camera.status = `${type} - auto-dispatched`;
-    camera.alert = true;
-    setDecision(`${score} is 0.85 or more: dispatched automatically.`, 'dispatch');
-  } else if (decision === 'confirm') {
-    cooldown.start(pole.id, now);
-    camera.status = `${type} - waiting for operator`;
-    camera.alert = true;
-    setDecision(`${score} is between 0.60 and 0.85: waiting for an operator to confirm.`, 'confirm');
-  } else {
-    camera.status = `${type} - below threshold`;
-    setDecision(`${score} is below 0.60: logged only, nothing raised.`, 'log');
-  }
 }
 
 let lastPanelUpdate = 0;
@@ -201,7 +211,7 @@ function tick(nowMs) {
       if (t >= duration) {
         camera.finished = true;
         showScore(camera.peak, 'Peak score in clip');
-        raiseEvent(camera.scenario, camera.peak);
+        raiseEvent(scenarios[camera.scenario].type, camera.peak);
         setSimButtons(true);
       }
     }
@@ -216,7 +226,7 @@ function tick(nowMs) {
   }
 
   drawFrame(ctx, objects, {
-    poleId: camera.scenario ? camera.poleId : state.poleId,
+    poleId: camera.scenario ? camera.poleId : selectedPoleId,
     time: formatTime(new Date()),
     clock,
     status: camera.status,
@@ -225,13 +235,204 @@ function tick(nowMs) {
   requestAnimationFrame(tick);
 }
 
+function raiseEvent(type, result) {
+  const pole = poleById(camera.poleId);
+  const now = Date.now();
+  const decision = decide(result.score);
+  const score = result.score.toFixed(2);
+  const wait = cooldown.remaining(pole.id, now);
+  const incident = { id: nextIncidentId++, time: new Date(now), poleId: pole.id, type, score: result.score };
+  incidents.unshift(incident);
+  camera.incidentId = incident.id;
+
+  if (decision !== 'log' && wait > 0) {
+    incident.status = 'blocked';
+    setCameraStatus(incident, 'blocked by cooldown', false);
+    setDecision(`${score}: ${pole.id} raised an alert ${Math.round((COOLDOWN_MS - wait) / 1000)} s ago, so this one is blocked for ${Math.ceil(wait / 1000)} s more.`, 'blocked');
+  } else if (decision === 'dispatch') {
+    cooldown.start(pole.id, now);
+    dispatch(incident, 'auto');
+    setDecision(`${score} is 0.85 or more: dispatched automatically.`, 'dispatch');
+  } else if (decision === 'confirm') {
+    cooldown.start(pole.id, now);
+    incident.status = 'awaiting';
+    setCameraStatus(incident, 'waiting for operator', true);
+    setDecision(`${score} is between 0.60 and 0.85: waiting for an operator (see Operator check below).`, 'confirm');
+  } else {
+    incident.status = 'logged';
+    setCameraStatus(incident, 'below threshold', false);
+    setDecision(`${score} is below 0.60: logged only, nothing raised.`, 'log');
+  }
+  renderAll();
+}
+
+function dispatch(incident, by) {
+  const pole = poleById(incident.poleId);
+  incident.status = 'dispatched';
+  incident.confirmedBy = by;
+  incident.plan = planDispatch(pole, ambulances, hospitals);
+  setCameraStatus(incident, by === 'auto' ? 'auto-dispatched' : 'dispatched by operator', true);
+  renderAlert(incident, pole);
+  drawRoute(pole, incident.plan);
+}
+
+function statusText(incident) {
+  if (incident.status === 'dispatched') return `Dispatched (${incident.confirmedBy})`;
+  return STATUS_TEXT[incident.status];
+}
+
+function oldestAwaiting() {
+  return incidents.findLast(i => i.status === 'awaiting');
+}
+
+function resolveAwaiting(confirmed) {
+  const incident = oldestAwaiting();
+  if (!incident) return;
+  if (confirmed) {
+    dispatch(incident, 'operator');
+    setDecision(`Operator confirmed ${incident.poleId}: dispatched.`, 'dispatch');
+  } else {
+    incident.status = 'dismissed';
+    setCameraStatus(incident, 'dismissed by operator', false);
+    setDecision(`Operator dismissed the alert from ${incident.poleId}.`, 'log');
+  }
+  renderAll();
+}
+
+function renderAlert(incident, pole) {
+  const plan = incident.plan;
+  const body = $('alert-body');
+  body.innerHTML = `
+    <dl class="facts">
+      <div><dt>Ambulance</dt><dd>${plan.ambulance.id} (${plan.ambulance.crew})<span>${plan.ambulanceKm.toFixed(1)} km straight line, ETA about ${plan.etaMin} min</span></dd></div>
+      <div><dt>Hospital</dt><dd>${plan.hospital.name} (TEST)<span>${plan.hospitalKm.toFixed(1)} km from the pole</span></dd></div>
+    </dl>
+    <pre class="message"></pre>
+    <p class="muted">Lines on the map are straight lines between points, not road routes. The ETA assumes the road is about 1.4 times the straight line, driven at 30 km/h.</p>
+    <a class="maps-link" href="${mapsLink(pole.lat, pole.lng)}" target="_blank" rel="noopener">Open the pole location in Google Maps</a>`;
+  body.querySelector('.message').textContent = alertMessage(incident, pole, plan);
+}
+
+function renderConfirm() {
+  const incident = oldestAwaiting();
+  const panel = $('confirm-panel');
+  panel.hidden = !incident;
+  if (!incident) return;
+  const pole = poleById(incident.poleId);
+  $('confirm-text').textContent =
+    `${pole.id} (${pole.name}) reports "${incident.type}" with score ${incident.score.toFixed(2)} at ${formatTime(incident.time)}. ` +
+    'Check the camera, then confirm to send the nearest ambulance or dismiss it as a false alarm.';
+}
+
+function renderFeed() {
+  $('feed-empty').hidden = incidents.length > 0;
+  $('feed-body').innerHTML = incidents.map(i => `
+    <tr>
+      <td>${formatTime(i.time)}</td>
+      <td>${i.poleId}</td>
+      <td>${i.type}</td>
+      <td>${i.score.toFixed(2)}</td>
+      <td><span class="badge badge-${i.status}">${statusText(i)}</span></td>
+    </tr>`).join('');
+}
+
+function poleLights(poleId, now) {
+  const latest = incidents.find(i => i.poleId === poleId && ['awaiting', 'dispatched', 'dismissed'].includes(i.status));
+  const left = Math.ceil(cooldown.remaining(poleId, now) / 1000);
+  if (latest?.status === 'awaiting') return { green: false, red: 'blink', text: 'Waiting for operator' };
+  if (latest?.status === 'dispatched' && left > 0) return { green: false, red: 'on', text: `Help dispatched, cooldown ${left} s` };
+  return { green: true, red: 'off', text: left > 0 ? `Watching, cooldown ${left} s` : 'Watching' };
+}
+
+function buildStrip() {
+  $('pole-strip').innerHTML = poles.map(pole => `
+    <li data-pole="${pole.id}">
+      <span class="led led-green" aria-hidden="true"></span>
+      <span class="led led-red" aria-hidden="true"></span>
+      <strong>${pole.id}</strong>
+      <span class="muted strip-text"></span>
+    </li>`).join('');
+}
+
+function renderStrip() {
+  const now = Date.now();
+  for (const pole of poles) {
+    const lights = poleLights(pole.id, now);
+    const item = document.querySelector(`[data-pole="${pole.id}"]`);
+    item.querySelector('.led-green').classList.toggle('on', lights.green);
+    item.querySelector('.led-red').classList.toggle('on', lights.red === 'on');
+    item.querySelector('.led-red').classList.toggle('blink', lights.red === 'blink');
+    item.querySelector('.strip-text').textContent = lights.text;
+    poleMarkerEl(pole.id)?.classList.toggle('alerting', lights.red !== 'off');
+  }
+}
+
+function renderAll() {
+  renderConfirm();
+  renderFeed();
+  renderStrip();
+}
+
+let aidLang = 'en';
+let aidPlaying = false;
+
+const firstAid = createFirstAid({
+  onStep(index, total, text) {
+    $('aid-progress').textContent = `Step ${index + 1} of ${total}`;
+    $('aid-caption').textContent = text;
+  },
+  onNote(text) {
+    $('aid-note').textContent = text;
+  },
+  onDone() {
+    setAidPlaying(false);
+    $('aid-progress').textContent = 'Finished';
+  }
+});
+
+function setAidPlaying(playing) {
+  aidPlaying = playing;
+  const button = $('btn-aid');
+  button.textContent = playing ? 'Stop' : 'Play First Aid';
+  button.classList.toggle('btn-ok', !playing);
+  button.classList.toggle('btn-quiet', playing);
+}
+
+function toggleFirstAid() {
+  if (aidPlaying) {
+    firstAid.stop();
+    setAidPlaying(false);
+    $('aid-progress').textContent = 'Stopped';
+    return;
+  }
+  setAidPlaying(true);
+  firstAid.play(aidLang, $('aid-captions-only').checked);
+}
+
+function setAidLang(lang) {
+  aidLang = lang;
+  for (const button of document.querySelectorAll('.seg')) {
+    button.setAttribute('aria-pressed', String(button.dataset.lang === lang));
+  }
+  if (aidPlaying) toggleFirstAid();
+}
+
 $('btn-crash').addEventListener('click', () => startScenario('crash'));
 $('btn-person').addEventListener('click', () => startScenario('person'));
 $('btn-live').addEventListener('click', backToLive);
+$('btn-confirm').addEventListener('click', () => resolveAwaiting(true));
+$('btn-dismiss').addEventListener('click', () => resolveAwaiting(false));
+$('btn-aid').addEventListener('click', toggleFirstAid);
+for (const button of document.querySelectorAll('.seg')) {
+  button.addEventListener('click', () => setAidLang(button.dataset.lang));
+}
 
 fillPoleSelect();
+buildStrip();
 addMarkers();
-selectPole(state.poleId);
+selectPole(selectedPoleId);
+renderAll();
+setInterval(renderStrip, 1000);
 new ResizeObserver(resizeCanvas).observe(canvas);
 resizeCanvas();
 requestAnimationFrame(tick);

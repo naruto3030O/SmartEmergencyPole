@@ -26,18 +26,30 @@
   </p>
 
   <main class="layout">
-    <section class="panel map-panel" aria-labelledby="map-title">
-      <div class="panel-head">
-        <h2 id="map-title">Corridor map</h2>
-        <span class="muted" id="map-note">Click a pole to view its camera</span>
-      </div>
-      <div id="map" class="map"></div>
-      <ul class="legend">
-        <li><span class="key key-pole"></span>Pole</li>
-        <li><span class="key key-amb"></span>Ambulance (TEST)</li>
-        <li><span class="key key-hosp"></span>Hospital (TEST)</li>
-      </ul>
-    </section>
+    <div class="col">
+      <section class="panel map-panel" aria-labelledby="map-title">
+        <div class="panel-head">
+          <h2 id="map-title">Corridor map</h2>
+          <span class="muted">Click a pole to view its camera</span>
+        </div>
+        <div id="map" class="map"></div>
+        <ul class="legend">
+          <li><span class="key key-pole"></span>Pole</li>
+          <li><span class="key key-amb"></span>Ambulance (TEST)</li>
+          <li><span class="key key-hosp"></span>Hospital (TEST)</li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="alert-title">
+        <div class="panel-head">
+          <h2 id="alert-title">Dispatch alert</h2>
+          <span class="muted">Telegram message preview, not sent</span>
+        </div>
+        <div id="alert-body">
+          <p class="empty">No dispatch yet. When an incident is dispatched, the message for the ambulance crew shows up here.</p>
+        </div>
+      </section>
+    </div>
 
     <div class="side">
       <section class="panel" aria-labelledby="cam-title">
@@ -71,7 +83,70 @@
           <p id="decision" class="decision" aria-live="polite">Watching traffic.</p>
         </div>
       </section>
+
+      <section class="panel confirm-panel" id="confirm-panel" aria-labelledby="confirm-title" hidden>
+        <div class="panel-head">
+          <h2 id="confirm-title">Operator check</h2>
+          <span class="tag tag-warn">Needs a decision</span>
+        </div>
+        <p id="confirm-text"></p>
+        <div class="actions">
+          <button type="button" id="btn-confirm" class="btn btn-danger">Confirm and dispatch</button>
+          <button type="button" id="btn-dismiss" class="btn btn-quiet">Dismiss</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="aid-title">
+        <div class="panel-head">
+          <h2 id="aid-title">First Aid button</h2>
+          <div class="segmented" role="group" aria-label="Script language">
+            <button type="button" class="seg" data-lang="en" aria-pressed="true">English</button>
+            <button type="button" class="seg" data-lang="hi" aria-pressed="false">Hindi</button>
+          </div>
+        </div>
+        <p class="muted">Same as the physical button on the pole: spoken steps for bystanders until help arrives.</p>
+        <div class="actions">
+          <button type="button" id="btn-aid" class="btn btn-ok">Play First Aid</button>
+          <label class="check"><input type="checkbox" id="aid-captions-only"> Captions only (no audio)</label>
+        </div>
+        <div class="caption-box">
+          <span id="aid-progress" class="muted">Not playing</span>
+          <p id="aid-caption" class="caption" aria-live="polite">Captions appear here, one step at a time.</p>
+        </div>
+        <p id="aid-note" class="muted"></p>
+      </section>
     </div>
+
+    <section class="panel wide" aria-labelledby="feed-title">
+      <div class="panel-head">
+        <h2 id="feed-title">Incident feed</h2>
+        <span class="muted">Newest first</span>
+      </div>
+      <div class="strip-head">
+        <h3>Pole status</h3>
+        <span class="muted">Mirrors the pole LEDs: green on = watching, red blinking = waiting for operator, red on = help dispatched (held through the cooldown)</span>
+      </div>
+      <ul id="pole-strip" class="pole-strip"></ul>
+      <div class="table-wrap">
+        <table class="feed">
+          <thead><tr><th>Time</th><th>Pole</th><th>Type</th><th>Score</th><th>Status</th></tr></thead>
+          <tbody id="feed-body"></tbody>
+        </table>
+      </div>
+      <p id="feed-empty" class="empty">No incidents yet. Pick a pole and press Simulate crash or Simulate person down.</p>
+    </section>
+
+    <section class="panel wide how" aria-labelledby="how-title">
+      <h2 id="how-title">How it works</h2>
+      <ol>
+        <li><strong>Watch.</strong> The pole runs an object detector on the existing CCTV feed and follows each vehicle and person from frame to frame.</li>
+        <li><strong>Score.</strong> Four signals come from those tracks: how much two boxes overlap, how much speed a vehicle lost in a fraction of a second, how far something turned, and whether a person is lying near a vehicle. They are weighted 0.4, 0.3, 0.2 and 0.1.</li>
+        <li><strong>Decide.</strong> A score of 0.85 or more dispatches on its own. Between 0.60 and 0.85 an operator decides. Each pole raises at most one alert every 30 seconds.</li>
+        <li><strong>Dispatch.</strong> The nearest ambulance and hospital are picked by straight-line distance, and the crew gets the pole's GPS pin.</li>
+        <li><strong>Help on site.</strong> Anyone at the pole can press First Aid for spoken, step-by-step instructions until the ambulance arrives.</li>
+      </ol>
+      <p class="muted">On this page the camera, the detections and every ambulance and hospital are simulated. The scoring rules and the nearest-unit lookup are real code and run in your browser.</p>
+    </section>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
