@@ -53,6 +53,9 @@ h2 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; }
   font-size: 0.88rem;
 }
 
+.banner-error { background: #fbeceb; border-bottom-color: #e7b9b3; }
+.banner code { font-size: 0.85em; }
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
@@ -321,7 +324,15 @@ select {
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 0.75rem; gap: 0.75rem; }
-  .col, .side { gap: 0.75rem; }
+  /* One column: put the camera right under the map, before the alert. */
+  .col, .side { display: contents; }
+  .map-panel { order: 1; }
+  .camera-panel { order: 2; }
+  .confirm-panel { order: 3; }
+  .alert-panel { order: 4; }
+  .aid-panel { order: 5; }
+  .feed-panel { order: 6; }
+  .how { order: 7; }
   .map { height: 360px; }
 }
 
@@ -332,4 +343,5 @@ select {
   .facts { grid-template-columns: 1fr; }
   .actions .btn { flex: 1 1 auto; }
   .breakdown th, .breakdown td { padding: 0.3rem 0.25rem; }
+  .feed th, .feed td { padding: 0.4rem 0.3rem; white-space: normal; }
 }
