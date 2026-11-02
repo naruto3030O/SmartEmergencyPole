@@ -1,0 +1,126 @@
+:root {
+  --bg: #eceee9;
+  --panel: #ffffff;
+  --ink: #1c2024;
+  --muted: #5b636a;
+  --line: #d3d7d0;
+  --accent: #0d6b66;
+  --accent-soft: #e2efed;
+  --ok: #2e8540;
+  --warn: #b7700a;
+  --bad: #c0392b;
+  --radius: 6px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; line-height: 1.45; }
+
+h1, h2, h3 { margin: 0; line-height: 1.2; }
+h2 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--ink);
+  color: #f2f3f0;
+}
+
+.brand { display: flex; align-items: center; gap: 0.75rem; }
+.brand h1 { font-size: 1.15rem; }
+.brand .sub { margin: 0; font-size: 0.8rem; color: #aab2b8; }
+.brand-mark {
+  width: 10px;
+  height: 34px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 -12px 0 -2px var(--bad) inset;
+}
+
+.banner {
+  margin: 0;
+  padding: 0.55rem 1.25rem;
+  background: #fff6e0;
+  border-bottom: 1px solid #ecd9a6;
+  font-size: 0.88rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.25rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  min-width: 0;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+}
+
+.map { height: 520px; border: 1px solid var(--line); border-radius: 4px; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.legend li { display: flex; align-items: center; gap: 0.4rem; }
+
+.key, .marker {
+  display: inline-block;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.key { width: 12px; height: 12px; }
+.key-pole, .marker-pole { background: var(--ink); border-radius: 2px; }
+.key-amb, .marker-amb { background: var(--accent); border-radius: 50%; }
+.key-hosp, .marker-hosp { background: #fff; border: 3px solid var(--bad); border-radius: 2px; }
+
+.marker {
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  font: 700 10px/1 system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.marker-hosp { color: var(--bad); }
+.marker-pole.selected { background: var(--accent); }
+
+.map-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+}

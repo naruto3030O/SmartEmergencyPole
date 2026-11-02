@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Emergency Pole - simulated demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Smart Emergency Pole</h1>
+        <p class="sub">Control room view, NH-48 corridor</p>
+      </div>
+    </div>
+  </header>
+
+  <p class="banner" role="note">
+    <strong>Simulated demo.</strong> Camera feed, detections and all ambulances and hospitals are TEST data.
+    Nothing is sent to anyone. The real pole hardware will be shown at the offline round.
+  </p>
+
+  <main class="layout">
+    <section class="panel map-panel" aria-labelledby="map-title">
+      <div class="panel-head">
+        <h2 id="map-title">Corridor map</h2>
+        <span class="muted" id="map-note">Click a pole to view its camera</span>
+      </div>
+      <div id="map" class="map"></div>
+      <ul class="legend">
+        <li><span class="key key-pole"></span>Pole</li>
+        <li><span class="key key-amb"></span>Ambulance (TEST)</li>
+        <li><span class="key key-hosp"></span>Hospital (TEST)</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
