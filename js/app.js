@@ -1,8 +1,9 @@
 import { poles, ambulances, hospitals } from './data.js';
 import { WEIGHTS, COOLDOWN_MS, createTracker, trackFrame, crashScore, decide, createCooldown } from './detect.js';
-import { planDispatch, alertMessage, mapsLink, formatTime } from './dispatch.js';
+import { nearest, planDispatch, alertMessage, restockMessage, mapsLink, formatTime } from './dispatch.js';
 import { WIDTH, HEIGHT, scenarios, trafficAt, scenarioAt, drawFrame } from './camera.js';
 import { createFirstAid } from './firstaid.js';
+import { createBoxAnimation } from './aidbox.js';
 
 const $ = id => document.getElementById(id);
 
@@ -17,13 +18,15 @@ const STATUS_TEXT = {
   awaiting: 'Waiting for operator',
   dismissed: 'Dismissed by operator',
   blocked: 'Blocked by cooldown',
-  logged: 'Logged, below 0.60'
+  logged: 'Logged, below 0.60',
+  restock: 'Restock requested'
 };
 
 const incidents = [];
 const cooldown = createCooldown();
 let selectedPoleId = poles[0].id;
 let nextIncidentId = 1;
+const restockRequests = new Map();
 
 const camera = {
   scenario: null,
@@ -116,14 +119,18 @@ function poleById(id) {
 function selectPole(id) {
   selectedPoleId = id;
   $('pole-select').value = id;
+  $('box-pole-select').value = id;
   for (const poleId of Object.keys(poleMarkers)) {
     poleMarkerEl(poleId)?.classList.toggle('selected', poleId === id);
   }
 }
 
 function fillPoleSelect() {
-  $('pole-select').innerHTML = poles.map(p => `<option value="${p.id}">${p.id} - ${p.name}</option>`).join('');
-  $('pole-select').addEventListener('change', e => selectPole(e.target.value));
+  const options = poles.map(p => `<option value="${p.id}">${p.id} - ${p.name}</option>`).join('');
+  for (const id of ['pole-select', 'box-pole-select']) {
+    $(id).innerHTML = options;
+    $(id).addEventListener('change', e => selectPole(e.target.value));
+  }
 }
 
 function resizeCanvas() {
@@ -331,7 +338,7 @@ function renderFeed() {
       <td>${formatTime(i.time)}</td>
       <td>${i.poleId}</td>
       <td>${i.type}</td>
-      <td>${i.score.toFixed(2)}</td>
+      <td>${i.score === null ? '-' : i.score.toFixed(2)}</td>
       <td><span class="badge badge-${i.status}">${statusText(i)}</span></td>
     </tr>`).join('');
 }
@@ -367,10 +374,42 @@ function renderStrip() {
   }
 }
 
+function boxOpened(poleId) {
+  const pole = poleById(poleId);
+  const existing = restockRequests.get(poleId);
+  if (existing) {
+    $('restock-note').textContent = `${pole.id} already asked ${existing.hospital.name} at ${formatTime(existing.time)}, so no second request was sent.`;
+    return;
+  }
+  const time = new Date();
+  const { place: hospital, km } = nearest(pole, hospitals);
+  restockRequests.set(poleId, { hospital, time });
+  incidents.unshift({ id: nextIncidentId++, time, poleId, type: 'First aid box opened', score: null, status: 'restock' });
+  $('restock-body').innerHTML = `
+    <pre class="message"></pre>
+    <p class="muted" id="restock-note">Sent to the nearest hospital by straight-line distance. One request per opening until the box is marked restocked.</p>`;
+  $('restock-body').querySelector('.message').textContent = restockMessage(pole, hospital, km, time);
+  renderAll();
+}
+
+function renderBoxStatus() {
+  $('box-status').innerHTML = poles.map(pole => {
+    const request = restockRequests.get(pole.id);
+    if (!request) return `<li><strong>${pole.id}</strong><span class="badge badge-logged">Stocked</span></li>`;
+    return `
+      <li>
+        <strong>${pole.id}</strong>
+        <span class="badge badge-restock">Restock requested, ${formatTime(request.time)}</span>
+        <button type="button" class="btn btn-quiet btn-small" data-restocked="${pole.id}">Mark restocked</button>
+      </li>`;
+  }).join('');
+}
+
 function renderAll() {
   renderConfirm();
   renderFeed();
   renderStrip();
+  renderBoxStatus();
 }
 
 let aidLang = 'en';
@@ -387,6 +426,20 @@ const firstAid = createFirstAid({
   onDone() {
     setAidPlaying(false);
     $('aid-progress').textContent = 'Finished';
+  }
+});
+
+let boxPoleId = selectedPoleId;
+
+const boxAnimation = createBoxAnimation($('box-scene'), {
+  onStep(index, total, text) {
+    $('box-progress').textContent = `Step ${index + 1} of ${total} (${boxPoleId})`;
+    $('box-caption').textContent = text;
+    if (index === 0) boxOpened(boxPoleId);
+  },
+  onDone() {
+    $('btn-box').disabled = false;
+    $('box-progress').textContent = 'Finished';
   }
 });
 
@@ -423,6 +476,17 @@ $('btn-live').addEventListener('click', backToLive);
 $('btn-confirm').addEventListener('click', () => resolveAwaiting(true));
 $('btn-dismiss').addEventListener('click', () => resolveAwaiting(false));
 $('btn-aid').addEventListener('click', toggleFirstAid);
+$('btn-box').addEventListener('click', () => {
+  boxPoleId = selectedPoleId;
+  $('btn-box').disabled = true;
+  boxAnimation.play();
+});
+$('box-status').addEventListener('click', e => {
+  const poleId = e.target.dataset.restocked;
+  if (!poleId) return;
+  restockRequests.delete(poleId);
+  renderBoxStatus();
+});
 for (const button of document.querySelectorAll('.seg')) {
   button.addEventListener('click', () => setAidLang(button.dataset.lang));
 }

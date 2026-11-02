@@ -43,9 +43,19 @@ Open the page and you get a control-room view of four test poles along NH-48
   a rough ETA. The route on the map is a straight line, and the page says so.
 - **Alert preview**: the exact text the ambulance crew would get on Telegram,
   including a Google Maps link to the pole. Nothing is actually sent.
-- **First Aid**: speaks a short English script with the browser's
-  `speechSynthesis` and shows each step as a caption. If the browser has no
-  voice (or you tick *Captions only*), it shows captions on their own.
+- **First Aid station** (its own green section, also linked from the top bar):
+  - *Voice-guided First Aid button*: speaks a short English script with the
+    browser's `speechSynthesis` and shows each step as a caption. If the
+    browser has no voice (or you tick *Captions only*), it shows captions on
+    their own.
+  - *Using the first aid box*: a simple SVG animation of a bystander opening
+    the green box on the pole, taking out a dressing and pressing it on an
+    injured person's wound, with a caption for each step.
+  - *Restock*: opening the box (the first step of the animation) stands in for
+    the door switch. The pole logs "First aid box opened" in the incident feed
+    and sends a restock request with its GPS pin to the nearest test hospital.
+    Each pole sends one request per opening until someone presses *Mark
+    restocked*.
 - **Incident feed** and a **pole status strip** that copies what the pole's two
   LEDs will do: green on while watching, red blinking while waiting for an
   operator, red on once help is dispatched (held through the cooldown).
@@ -63,6 +73,7 @@ Open the page and you get a control-room view of four test poles along NH-48
 | Telegram alert | Text preview only. No message is sent and no API is called. |
 | Route and ETA | Straight line. The ETA assumes the road is about 1.4x the straight line, driven at 30 km/h. |
 | First Aid audio | Real browser speech synthesis. The voice depends on your browser and OS. |
+| First aid box, door switch, restock request | Planned. The animation and the request message are simulated, and nothing is sent. The nearest-hospital pick is the same haversine lookup. |
 
 ## Running it
 
@@ -124,6 +135,7 @@ js/dispatch.js   haversine, nearest unit, ETA, alert text
 js/data.js       poles, test ambulances, test hospitals
 js/camera.js     the simulated camera clips and drawing
 js/firstaid.js   first-aid script and speech
+js/aidbox.js     first aid box animation steps
 tests/check.mjs  quick logic checks
 tools/           offline YOLOv8n script (not used by the page)
 docs/            diagrams
@@ -135,7 +147,8 @@ The pole would take the feed from an existing CCTV camera into a small edge
 computer (a Raspberry Pi class board) running a
 YOLO-style detector and the same scoring rules as this page. It sends alerts
 over a 4G module, has a GPS module for its own position, a green and a red LED
-on top, and a large First Aid push button with a speaker. Power would come from
+on top, a large First Aid push button with a speaker, and an unlocked first
+aid box with a door switch, so that opening it triggers a restock request. Power would come from
 the street-light supply with a battery backup. This is our plan for the offline
 round. It is not built or tested at the scale described here.
 
@@ -157,6 +170,8 @@ round. It is not built or tested at the scale described here.
 - The Hindi First Aid script is a placeholder. We didn't want to publish
   medical instructions in Hindi until a native speaker with first-aid training
   has written and checked them.
+- The box contents listed on the page are our plan, not a checked kit list.
+  We would confirm them with a doctor or a first-aid trainer before building.
 - The First Aid script is short and generic. It is not a substitute for
   trained help or the 112 call-taker's instructions.
 

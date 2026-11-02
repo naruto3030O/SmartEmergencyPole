@@ -46,6 +46,17 @@ export function formatTime(date) {
   return date.toLocaleTimeString('en-GB', { hour12: false });
 }
 
+export function restockMessage(pole, hospital, km, time) {
+  return [
+    '[TEST] First aid box opened',
+    `Pole: ${pole.id}, ${pole.name}`,
+    `Time: ${formatTime(time)}`,
+    `Location: ${mapsLink(pole.lat, pole.lng)}`,
+    'Request: please restock the first aid box at this pole.',
+    `Sent to: ${hospital.name} (TEST), ${km.toFixed(1)} km away`
+  ].join('\n');
+}
+
 export function alertMessage(incident, pole, plan) {
   const how = incident.confirmedBy === 'operator' ? 'confirmed by operator' : 'auto-dispatched';
   return [

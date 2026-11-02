@@ -18,6 +18,7 @@
         <p class="sub">Control room view, NH-48 corridor</p>
       </div>
     </div>
+    <a class="jump" href="#first-aid">First Aid station</a>
   </header>
 
   <p class="banner" role="note">
@@ -99,26 +100,6 @@
           <button type="button" id="btn-dismiss" class="btn btn-quiet">Dismiss</button>
         </div>
       </section>
-
-      <section class="panel aid-panel" aria-labelledby="aid-title">
-        <div class="panel-head">
-          <h2 id="aid-title">First Aid button</h2>
-          <div class="segmented" role="group" aria-label="Script language">
-            <button type="button" class="seg" data-lang="en" aria-pressed="true">English</button>
-            <button type="button" class="seg" data-lang="hi" aria-pressed="false">Hindi</button>
-          </div>
-        </div>
-        <p class="muted">Same as the physical button on the pole: spoken steps for bystanders until help arrives.</p>
-        <div class="actions">
-          <button type="button" id="btn-aid" class="btn btn-ok">Play First Aid</button>
-          <label class="check"><input type="checkbox" id="aid-captions-only"> Captions only (no audio)</label>
-        </div>
-        <div class="caption-box">
-          <span id="aid-progress" class="muted">Not playing</span>
-          <p id="aid-caption" class="caption" aria-live="polite">Captions appear here, one step at a time.</p>
-        </div>
-        <p id="aid-note" class="muted"></p>
-      </section>
     </div>
 
     <section class="panel wide feed-panel" aria-labelledby="feed-title">
@@ -140,6 +121,118 @@
       <p id="feed-empty" class="empty">No incidents yet. Pick a pole and press Simulate crash or Simulate person down.</p>
     </section>
 
+    <section class="wide aid-station" id="first-aid" aria-labelledby="station-title">
+      <div class="station-head">
+        <span class="station-mark" aria-hidden="true"></span>
+        <div>
+          <h2 id="station-title">First Aid station on the pole</h2>
+          <p>Every pole also carries a First Aid button with a speaker and a first aid box. These are planned for the hardware and simulated on this page.</p>
+        </div>
+      </div>
+
+      <div class="station-grid">
+        <section class="panel" aria-labelledby="aid-title">
+          <div class="panel-head">
+            <h3 id="aid-title">1. Voice-guided First Aid button</h3>
+            <div class="segmented" role="group" aria-label="Script language">
+              <button type="button" class="seg" data-lang="en" aria-pressed="true">English</button>
+              <button type="button" class="seg" data-lang="hi" aria-pressed="false">Hindi</button>
+            </div>
+          </div>
+          <p class="muted">A bystander presses the big button on the pole and hears these steps from its speaker until help arrives.</p>
+          <div class="actions">
+            <button type="button" id="btn-aid" class="btn btn-ok">Play First Aid</button>
+            <label class="check"><input type="checkbox" id="aid-captions-only"> Captions only (no audio)</label>
+          </div>
+          <div class="caption-box">
+            <span id="aid-progress" class="muted">Not playing</span>
+            <p id="aid-caption" class="caption" aria-live="polite">Captions appear here, one step at a time.</p>
+          </div>
+          <p id="aid-note" class="muted"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="box-title">
+          <div class="panel-head">
+            <h3 id="box-title">2. Using the first aid box</h3>
+            <label class="pole-pick">Pole <select id="box-pole-select"></select></label>
+          </div>
+          <svg id="box-scene" class="box-scene" viewBox="0 0 480 270" role="img"
+               aria-label="Animation: a bystander opens the first aid box on the pole and presses a dressing on an injured person's leg">
+            <rect class="sky" x="0" y="0" width="480" height="270"/>
+            <g class="pole">
+              <rect x="50" y="34" width="14" height="210" rx="3"/>
+              <rect x="38" y="28" width="38" height="10" rx="3"/>
+              <circle class="pole-led-green" cx="47" cy="48" r="4"/>
+              <circle class="pole-led-red" cx="67" cy="48" r="4"/>
+              <rect class="pole-button" x="40" y="96" width="34" height="14" rx="7"/>
+            </g>
+            <g class="signal">
+              <path d="M78 60 a14 14 0 0 1 0 22"/>
+              <path d="M84 54 a22 22 0 0 1 0 34"/>
+              <text x="94" y="64">restock alert</text>
+              <text x="94" y="78">to hospital</text>
+            </g>
+            <g class="box">
+              <rect class="box-inside" x="64" y="120" width="46" height="38" rx="3"/>
+              <rect class="box-item" x="70" y="128" width="12" height="10" rx="2"/>
+              <rect class="box-item" x="86" y="130" width="16" height="7" rx="2"/>
+              <rect class="box-item" x="72" y="143" width="28" height="8" rx="2"/>
+              <g class="box-door">
+                <rect x="64" y="120" width="46" height="38" rx="3"/>
+                <rect class="cross" x="83" y="127" width="8" height="24"/>
+                <rect class="cross" x="75" y="135" width="24" height="8"/>
+              </g>
+            </g>
+            <g class="injured">
+              <line x1="352" y1="231" x2="312" y2="234"/>
+              <line x1="352" y1="235" x2="314" y2="242"/>
+              <rect class="clothes" x="348" y="220" width="74" height="18" rx="8"/>
+              <circle class="skin" cx="432" cy="228" r="10"/>
+              <ellipse class="wound" cx="334" cy="235" rx="7" ry="4"/>
+            </g>
+            <g class="helper">
+              <line x1="137" y1="212" x2="132" y2="240"/>
+              <line x1="143" y1="212" x2="148" y2="240"/>
+              <rect class="shirt" x="132" y="178" width="16" height="36" rx="6"/>
+              <line class="arm" x1="136" y1="186" x2="122" y2="198"/>
+              <circle class="skin" cx="140" cy="167" r="10"/>
+              <rect class="dressing" x="116" y="192" width="12" height="9" rx="2"/>
+            </g>
+            <rect class="ground" x="0" y="240" width="480" height="30"/>
+          </svg>
+          <div class="actions">
+            <button type="button" id="btn-box" class="btn btn-ok">Simulate box being used</button>
+          </div>
+          <div class="caption-box">
+            <span id="box-progress" class="muted">Not playing</span>
+            <p id="box-caption" class="caption" aria-live="polite">Press the button to watch how a bystander would use the box.</p>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel restock" aria-labelledby="restock-title">
+        <div class="panel-head">
+          <h3 id="restock-title">3. Box opened, so the box gets restocked</h3>
+          <span class="muted">Message preview, not sent</span>
+        </div>
+        <div class="restock-grid">
+          <div>
+            <ul class="plan-list">
+              <li>The box sits on the pole at chest height, behind a door anyone can open. There is no lock.</li>
+              <li>Planned contents: gloves, sterile dressings, a crepe bandage, antiseptic wipes and a foil blanket.</li>
+              <li>A switch on the door tells the pole when the box is opened. The pole logs it in the control room feed.</li>
+              <li>The pole sends a restock request with its GPS pin to the nearest hospital, so the box is refilled before the next emergency.</li>
+            </ul>
+            <h4>Box status</h4>
+            <ul id="box-status" class="box-status"></ul>
+          </div>
+          <div id="restock-body">
+            <p class="empty">No box opened yet. Press Simulate box being used.</p>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <section class="panel wide how" aria-labelledby="how-title">
       <h2 id="how-title">How it works</h2>
       <ol>
@@ -147,7 +240,8 @@
         <li><strong>Score.</strong> Four signals come from those tracks: how much two boxes overlap, how much speed a vehicle lost in a fraction of a second, how far something turned, and whether a person is lying near a vehicle. They are weighted 0.4, 0.3, 0.2 and 0.1.</li>
         <li><strong>Decide.</strong> A score of 0.85 or more dispatches on its own. Between 0.60 and 0.85 an operator decides. Each pole raises at most one alert every 30 seconds.</li>
         <li><strong>Dispatch.</strong> The nearest ambulance and hospital are picked by straight-line distance, and the crew gets the pole's GPS pin.</li>
-        <li><strong>Help on site.</strong> Anyone at the pole can press First Aid for spoken, step-by-step instructions until the ambulance arrives.</li>
+        <li><strong>Help on site.</strong> Anyone at the pole can press First Aid for spoken, step-by-step instructions, and use the first aid box on the pole until the ambulance arrives.</li>
+        <li><strong>Restock.</strong> When the box is opened, the nearest hospital gets a request to refill it.</li>
       </ol>
       <p class="muted">On this page the camera, the detections and every ambulance and hospital are simulated. The scoring rules and the nearest-unit lookup are real code and run in your browser.</p>
     </section>
